@@ -25,7 +25,9 @@ in
      let
          oldghcs = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/83b35508c6491103cd16a796758e07417a28698b.tar.gz) {
            config = config // { allowBroken = true; };
-  };
+
+         };
+         # ssh-to-age = import (fetchTarball https://github.com/Mic92/ssh-to-age/archive/main.tar.gz)
          newghcs = import (fetchTarball https://github.com/NixOS/nixpkgs/archive/f682ff93a2778f101d93b68c97278f902523758a.tar.gz) {
            config = config // { allowBroken = true; };
   };
@@ -41,6 +43,8 @@ in
   #./cachix.nix
   ./prev.nix
   "${builtins.fetchTarball "https://github.com/Mic92/sops-nix/archive/master.tar.gz"}/modules/sops"
+  # "${(import ./nix/sources.nix).sops-nix}/modules/sops"
+  "${builtins.fetchTarball "https://github.com/Mic92/ssh-to-age/archive/main.tar.gz"}"
   # "${builtins.fetchTarball "https://github.com/icebox-nix/netkit.nix/archive/refs/heads/master.tar.gz"}/modules/snapdrop"
   # nur-no-pkgs.repos.mmilata.modules.jitsi-meet
   # nur-no-pkgs.repos.mpickering.ghc.ghc801
@@ -54,6 +58,17 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot";
+  #cleanup
+  #nix.autoOptimiseStore = true;
+  # nix.gc = {
+  # automatic = true;
+  # dates = "weekly";
+  # options = "--delete-older-than 30d";
+  # };
+  # nix.extraOptions = ''
+#   min-free = ${toString (100 * 1024 * 1024)}
+#   max-free = ${toString (1024 * 1024 * 1024)}
+# '';
 
   # sandbox
   # nix.useSandbox = true;
@@ -71,7 +86,12 @@ in
   boot.supportedFilesystems = [ "exfat" "zfs" ];
   boot.cleanTmpDir = true;
   boot.zfs.devNodes = "/dev";
-
+   # fileSystems."/nix" = {
+   #   device = "/dev/disk/by-label/nix";
+   #   fsType = "ext4";
+   #   neededForBoot = true;
+   #   options = [ "noatime" ];
+   # };
 
   # Splash screen to make boot look nice
   boot.plymouth.enable = false;
@@ -141,6 +161,7 @@ in
       settings.sandbox = true;
       settings.cores = 4;
       settings.extra-sandbox-paths = [ "/etc/nsswitch.conf" "/etc/protocols" ];
+      autoOptimiseStore = true;
      
       distributedBuilds = true;
       buildMachines = [
@@ -277,6 +298,15 @@ in
     #eww-wayland
     chromedriver
     firefox
+    # network
+    netbox
+    pulumi-bin
+    inxi
+    #keys
+    ssh-to-age
+    ssh-to-pgp 
+    #hdl
+    yosys
     #  mplayer
     gpgme.dev
     yubioath-desktop
@@ -358,7 +388,7 @@ in
     #lisp
     lispPackages.quicklisp
     lispPackages.quicklisp-to-nix
-    #roswell
+    roswell
     sbcl
     # pdf
     tetex
@@ -731,6 +761,9 @@ in
       export SSH_AUTH_SOCK="/run/user/$UID/gnupg/S.gpg-agent.ssh"
     '';
   };
+
+  system.autoUpgrade.enable = true;
+  system.autoUpgrade.allowReboot = true;
 
   system.activationScripts.samdotfiles = {
     text = ''

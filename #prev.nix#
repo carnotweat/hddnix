@@ -99,8 +99,101 @@ services.udev.extraRules = ''
 #   localAddress = "116.203.1.5";
 #   localAddress6 = "2a01:4f8:c0c:4f7a::2/128";
 #   privateNetwork = true;
-#   autoStart = true;
+# #   autoStart = true;
+# boot.kernel.sysctl = {
+#   "net.ipv4.ip_forward" = 1;
+#   "net.ipv6.conf.all.forwarding" = 1;
+  # };
+{config, pkgs, ...}:
+{
+  networking.wireguard.interfaces.dn42-peer = {
+    privateKey = "";
+    allowedIPsAsRoutes = false;
+    listenPort = 42420;
 
+    peers = [
+      {
+        publicKey = "";
+        allowedIPs = [ "0.0.0.0/0" "::/0" ];
+        endpoint = "42.42.42.42:42421";
+      }
+    ];
+    postSetup = ''
+      ${pkgs.iproute}/bin/ip addr add 169.254.0.1/32 peer 169.254.0.0/32 dev dn42-peer
+      ${pkgs.iproute}/bin/ip -6 addr add fe80::1220/64 dev dn42-peer
+    '';
+  };
+}
+  # services.ferm = {
+#     enable = true;
+#     config = ''
+#         domain ip table filter chain INPUT proto icmp ACCEPT;
+#         domain ip6 table filter chain INPUT proto (ipv6-icmp icmp) ACCEPT;
+#         domain (ip ip6) table filter {
+#           chain INPUT {
+#             policy DROP;
+#             interface lo ACCEPT;
+#             interface intern-+ ACCEPT;
+#             # website
+#             proto tcp dport (http https) ACCEPT;
+#             # wireguard
+#             proto udp dport ( &lt;Wireguard Ports&gt; ) ACCEPT;
+#             # bgp
+#             proto tcp dport (179) ACCEPT;
+#             # dns
+#             proto (udp tcp) dport domain ACCEPT;
+#             mod state state (INVALID) DROP;
+#             mod state state (ESTABLISHED RELATED) ACCEPT;
+#           }
+#           chain OUTPUT {
+#             policy ACCEPT;
+#           }
+#           chain FORWARD {
+#             policy DROP;
+#             # allow intern routing and dn42 forwarding
+#             interface dn42-+ outerface dn42-+ ACCEPT;
+#             interface intern-+ outerface intern-+ ACCEPT;
+#             interface intern-+ outerface dn42-+ ACCEPT;
+#             # but dn42 -&gt; intern only with execptions
+#             interface dn42-+ outerface intern-+ {
+#               proto (ipv6-icmp icmp) ACCEPT; # Allow SSH Access from dn42 to devices behind intern-+ Interfaces
+#               proto tcp dport (ssh) ACCEPT;
+#               mod state state (ESTABLISHED) ACCEPT;
+#             }
+#           }
+#         }
+#     '';
+#   };
+  #   networking.interfaces.lo = {
+  #   ipv4.addresses = [
+  #     {
+  #       address = "172.23.73.65";
+  #       prefixLength = 32;
+  #     }
+  #   ];
+  #   ipv6.addresses = [
+  #     {
+  #       address = "fd67:24bd:a1ea::1";
+  #       prefixLength = 128;
+  #     }
+  #   ];
+  # };
+
+
+  # containers.dn42 = {
+#   bindMounts = {
+#     "/var/www/dn42" = {
+#       hostPath = "/var/www/dn42";
+#       isReadOnly = true;
+#       mountPoint = "/var/www/dn42";
+#     };
+#     "/var/dns/dn42" = {
+#       hostPath = "/var/dns/dn42";
+#       isReadOnly = true;
+#       mountPoint = "/var/dns";
+#     };
+#   };
+# }
 #   config = { config, pkgs, ... }: {
 #     imports = [
 #       ./peers # Folder with a config for every Peer
